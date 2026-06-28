@@ -1,0 +1,117 @@
+version: 2
+
+models:
+  - name: stg_telegram_messages
+    description: "Cleaned and standardized telegram messages from raw layer"
+    columns:
+      - name: message_id
+        description: "Unique message identifier from Telegram"
+        tests:
+          - not_null
+      - name: channel_name
+        description: "Name of the Telegram channel"
+        tests:
+          - not_null
+      - name: channel_username
+        description: "Username of the Telegram channel"
+        tests:
+          - not_null
+      - name: message_date
+        description: "Timestamp when message was posted"
+      - name: message_text
+        description: "Full text content of the message"
+      - name: has_media
+        description: "Boolean flag indicating presence of media"
+      - name: image_path
+        description: "File path to downloaded image (if applicable)"
+      - name: views
+        description: "Number of views on the message"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: forwards
+        description: "Number of times message was forwarded"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: message_length
+        description: "Length of message text in characters"
+      - name: has_image_flag
+        description: "Calculated flag for presence of image"
+
+  - name: dim_channels
+    description: "Dimension table containing channel metadata"
+    columns:
+      - name: channel_key
+        description: "Surrogate key for channel"
+        tests:
+          - unique
+          - not_null
+      - name: channel_name
+        description: "Channel name"
+        tests:
+          - not_null
+      - name: channel_username
+        description: "Channel username"
+        tests:
+          - unique
+          - not_null
+      - name: channel_type
+        description: "Classification of channel (Pharmaceutical/Cosmetics/Medical)"
+
+  - name: dim_dates
+    description: "Date dimension for time-based analysis"
+    columns:
+      - name: date_key
+        description: "Date key (YYYY-MM-DD format)"
+        tests:
+          - unique
+          - not_null
+      - name: full_date
+        description: "Full date value"
+      - name: day_of_week
+        description: "Day of week (0-6)"
+      - name: day_name
+        description: "Name of day (Monday, Tuesday, etc.)"
+      - name: week_of_year
+        description: "Week number in year"
+      - name: month
+        description: "Month number (1-12)"
+      - name: month_name
+        description: "Month name"
+      - name: quarter
+        description: "Quarter (1-4)"
+      - name: year
+        description: "Year"
+      - name: is_weekend
+        description: "Boolean flag for weekend"
+
+  - name: fct_messages
+    description: "Fact table for message analytics"
+    columns:
+      - name: message_id
+        description: "Message identifier"
+        tests:
+          - not_null
+      - name: channel_key
+        description: "Foreign key to dim_channels"
+        tests:
+          - relationships:
+              to: ref('dim_channels')
+              field: channel_key
+      - name: date_key
+        description: "Foreign key to dim_dates"
+        tests:
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: views
+        description: "View count"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: forwards
+        description: "Forward count"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
